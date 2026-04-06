@@ -1,0 +1,116 @@
+generally: 3-operand isa, everything is 16 bit (memory cells are 16 bit, all
+instructions are 16 bit with a constant width encoding, all registers are 16
+bit)
+8 general purpose registers, r0-r6+sp (sp is r7), and link register. conditions
+are handled by flags.
+
+encoding: (specific descriptions below, bits with a given letter are concatted
+           and referred to by the var of that name)
+long jump       110xxxxxxxxxxxxx
+long call       111xxxxxxxxxxxxx
+short jump      100xxxxxxxxxxccc
+short call      101xxxxxxxxxxccc
+arith3          010oooosssSSSddd
+arithimm        011iooosssiiiddd
+load indexed    0001100sssSSSddd
+store indexed   0001110sssSSSddd
+load            0001101sssiiiddd
+store           0001111sssiiiddd
+const           00100xxxxxxxxddd
+lit pool        00101xxxxxxxxddd
+load lr sprel   0011100000iiiddd
+store lr sprel  0011101000iiiddd
+movfrom lr      0011100001111ddd
+movto lr        0011101001111ddd
+jump reg ind    0011110000111ddd
+jump lr         0011110001111111
+invalid         0000000000000000
+
+
+descriptions:
+Rx for a variable x is register number x
+
+long jump       110xxxxxxxxxxxxx
+x is a signed immediate representing the jump relative to the current program
+location.
+
+long call       111xxxxxxxxxxxxx
+same as long jump, but lr gets the previous value of the pc
+
+short jump      100xxxxxxxxxxccc
+x is a signed immediate with the same interpretation, but now c is a condition
+code.
+
+short call      101xxxxxxxxxxccc
+to short jump as long call is to long jump
+
+arith3          010oooosssSSSddd
+o is the operation to be performed's index in the alu. Rd = o(Rs,RS)
+
+arithimm        011iooosssiiiddd
+o is an operation to be performed, but truncated to allow a larger immediate.
+Rd = o(Rs,i)
+
+load indexed    0001100sssSSSddd
+Rd = *(Rs+RS)
+
+store indexed   0001110sssSSSddd
+*(Rs+RS) = Rd
+
+load            0001101sssiiiddd
+i is a signed constant. Rd = *(Rs+i)
+
+store           0001111sssiiiddd
+i is a signed constant. *(Rs+i) = Rd
+
+const           00100xxxxxxxxddd
+x is a signed constant. Rd = x
+
+lit pool        00101xxxxxxxxddd
+x is a signed constant. Rd = *(pc+x) (this constant loading strategy comes from
+32-bit arm)
+
+load lr sprel   0011100000iiiddd
+i is a signed constant. lr = *(sp+i)
+
+store lr sprel  0011101000iiiddd
+i is a signed constant. *(sp+i)
+
+movfrom lr      0011100001111ddd
+Rd = lr
+
+movto lr        0011101001111ddd
+lr = Rd
+
+jump reg ind    0011110000111ddd
+pc = Rd
+
+jump lr         0011110001111111
+pc = lr. this *could* be specialcased as a register indirect jump to r7 but
+this is simpler.
+
+invalid         0000000000000000
+0 is the default value for memory so we can have it stop the processor or
+something, since it's not supposed to be running as program data.
+
+operations:
+0  add
+1  sub
+2  lsl
+3  lsr
+4  asr
+5  unassigned
+6  unassigned
+7  subtract and set flags but return the first argument (this is how we get cmp)
+8  and
+9  or
+10 xor
+11 unassigned
+12 div
+13 mod
+14 mul
+15 unassigned
+
+we can ignore the indexed addressing mode when we implement it for simplicity,
+as well as mul and div/mod.
+
